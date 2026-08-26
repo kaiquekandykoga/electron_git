@@ -5,8 +5,7 @@
     "moduleResolution": "Bundler",
     "lib": ["ES2022", "DOM"],
     "jsx": "react-jsx",
-    "rootDir": "src/renderer",
     "noEmit": true
   },
-  "include": ["src/renderer"]
+  "include": ["src/renderer", "src/shared"]
 }
