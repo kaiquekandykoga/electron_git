@@ -7,8 +7,8 @@
   "scripts": {
     "start": "npm run build && electron .",
     "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.renderer.json && npm run build:renderer && npm run copy:assets",
-    "build:renderer": "esbuild src/renderer/index.tsx --bundle --jsx=automatic --outfile=dist/renderer/index.js --define:process.env.NODE_ENV='\"production\"'",
-    "copy:assets": "mkdir -p dist/renderer && cp src/renderer/index.html src/renderer/index.css dist/renderer/",
+    "build:renderer": "node scripts/build-renderer.js",
+    "copy:assets": "node scripts/copy-assets.js",
     "lint": "eslint .",
     "test": "jest",
     "ci": "npm run lint && npm test",

@@ -10,7 +10,7 @@ module.exports = tseslint.config(
     ignores: ['dist/**', 'release/**', 'node_modules/**'],
   },
   {
-    files: ['*.config.js'],
+    files: ['*.config.js', 'scripts/**/*.js'],
     languageOptions: {
       sourceType: 'commonjs',
       globals: globals.node,
