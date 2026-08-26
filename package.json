@@ -19,6 +19,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/jest": "^30.0.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^26.3.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
@@ -52,6 +53,7 @@
     }
   },
   "dependencies": {
+    "js-yaml": "^4.3.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
