@@ -4,8 +4,9 @@
     "module": "ES2022",
     "moduleResolution": "Bundler",
     "lib": ["ES2022", "DOM"],
+    "jsx": "react-jsx",
     "rootDir": "src/renderer",
-    "outDir": "dist/renderer"
+    "noEmit": true
   },
   "include": ["src/renderer"]
 }

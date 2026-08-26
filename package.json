@@ -6,7 +6,8 @@
   "main": "dist/main/index.js",
   "scripts": {
     "start": "npm run build && electron .",
-    "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.renderer.json && npm run copy:assets",
+    "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.renderer.json && npm run build:renderer && npm run copy:assets",
+    "build:renderer": "esbuild src/renderer/index.tsx --bundle --jsx=automatic --outfile=dist/renderer/index.js --define:process.env.NODE_ENV='\"production\"'",
     "copy:assets": "mkdir -p dist/renderer && cp src/renderer/index.html src/renderer/index.css dist/renderer/",
     "lint": "eslint .",
     "test": "jest",
@@ -19,8 +20,11 @@
     "@eslint/js": "^10.0.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^26.3.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
     "electron": "^44.0.0",
     "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.2",
     "eslint": "^10.9.1",
     "globals": "^17.11.0",
     "jest": "^30.4.2",
@@ -46,5 +50,12 @@
     "linux": {
       "target": "AppImage"
     }
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }
