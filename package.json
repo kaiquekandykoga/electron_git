@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "test": "jest",
     "ci": "npm run lint && npm test",
-    "package": "electron-builder"
+    "package": "electron-builder",
+    "release": "electron-builder --publish always"
   },
   "author": "Kaíque Kandy Koga",
   "license": "BSD-3-Clause",
@@ -43,14 +44,29 @@
       "output": "release"
     },
     "mac": {
-      "target": "dmg"
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "linux": {
-      "target": "AppImage"
-    }
+      "target": [
+        "AppImage"
+      ],
+      "category": "Development",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "releaseType": "draft"
+      }
+    ]
   },
   "dependencies": {
     "js-yaml": "^4.3.2",
