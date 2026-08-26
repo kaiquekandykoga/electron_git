@@ -1,4 +1,6 @@
-export {};
+import { Router } from './router/router.js';
+import { dashboardRoute } from './pages/dashboard/dashboard.js';
+import { settingsRoute } from './pages/settings/settings.js';
 
 declare global {
   interface Window {
@@ -8,12 +10,20 @@ declare global {
         chrome: () => string;
         electron: () => string;
       };
+      router: {
+        onNavigate: (callback: (route: string) => void) => () => void;
+      };
     };
   }
 }
 
-const versionsEl = document.getElementById('versions');
-if (versionsEl) {
-  const { node, chrome, electron } = window.api.versions;
-  versionsEl.textContent = `Node ${node()} · Chrome ${chrome()} · Electron ${electron()}`;
+const appEl = document.getElementById('app');
+
+if (appEl) {
+  const router = new Router(appEl, [dashboardRoute, settingsRoute], '/dashboard');
+  router.start();
+
+  window.api.router.onNavigate((route) => {
+    router.navigate(`/${route}`);
+  });
 }

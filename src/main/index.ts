@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron';
 import * as path from 'path';
+import { createApplicationMenu } from './menu';
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -14,6 +15,7 @@ function createWindow(): void {
     },
   });
 
+  createApplicationMenu(mainWindow);
   mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
 }
 
