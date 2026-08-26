@@ -6,6 +6,18 @@ body {
   justify-content: center;
   height: 100vh;
   margin: 0;
-  background: #1e1e2e;
-  color: #cdd6f4;
+  background: #fff5f8;
+  color: #7a2e4d;
+}
+
+h1 {
+  color: #d6336c;
+}
+
+#versions {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #f3b6cd;
+  color: #b02a5b;
 }

@@ -5,6 +5,8 @@ function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1024,
     height: 768,
+    title: 'Electron git',
+    backgroundColor: '#fff5f8',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
