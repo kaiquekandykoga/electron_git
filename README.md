@@ -12,7 +12,7 @@ npm run package # local installer in release/
 ```
 
 <!-- latest-release:start -->
-Download the latest release: [v1.0.2](https://github.com/kaiquekandykoga/electron_git/releases/tag/v1.0.2)
+Download the latest release: [v1.0.3](https://github.com/kaiquekandykoga/electron_git/releases/tag/v1.0.3)
 <!-- latest-release:end -->
 
 Releases are built and published automatically by GitHub Actions — see
