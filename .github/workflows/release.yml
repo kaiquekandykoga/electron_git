@@ -76,7 +76,9 @@ jobs:
       - name: Build and upload installers
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # No Apple Developer certificate in CI: build unsigned instead of failing.
+          # No Apple Developer certificate in CI: skip real signing instead of
+          # failing. The afterPack hook ad-hoc signs the macOS app so Gatekeeper
+          # does not report the download as damaged.
           CSC_IDENTITY_AUTO_DISCOVERY: false
         run: npm run release
 

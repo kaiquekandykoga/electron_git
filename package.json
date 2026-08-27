@@ -36,6 +36,7 @@
   },
   "build": {
     "appId": "com.electrongit.app",
+    "afterPack": "scripts/ad-hoc-sign-mac.js",
     "productName": "Electron git",
     "files": [
       "dist/**/*"
