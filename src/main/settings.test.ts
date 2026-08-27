@@ -14,6 +14,9 @@ import {
   writeSettings,
 } from './settings';
 
+/** Settings store normalised paths, so expectations must match the host separator. */
+const norm = (...paths: string[]): string[] => paths.map((entry) => path.normalize(entry));
+
 let dir: string;
 
 beforeEach(() => {
@@ -33,7 +36,7 @@ describe('normalizeSettings', () => {
   it('keeps known themes and drops blank or duplicate directories', () => {
     expect(
       normalizeSettings({ theme: 'dark', directories: ['/a', ' /a ', '', 42, '/b'] }),
-    ).toEqual({ theme: 'dark', directories: ['/a', '/b'] });
+    ).toEqual({ theme: 'dark', directories: norm('/a', '/b') });
   });
 });
 
@@ -48,7 +51,7 @@ describe('persistence', () => {
 
     const raw = fs.readFileSync(path.join(nested, SETTINGS_FILENAME), 'utf8');
     expect(raw).toContain('theme: dark');
-    expect(readSettings(nested)).toEqual({ theme: 'dark', directories: ['/repo'] });
+    expect(readSettings(nested)).toEqual({ theme: 'dark', directories: norm('/repo') });
   });
 
   it('falls back to defaults when the file is not valid YAML', () => {
@@ -60,15 +63,15 @@ describe('persistence', () => {
 describe('mutations', () => {
   it('adds a directory once and removes it again', () => {
     addDirectory('/repo', dir);
-    expect(addDirectory('/repo', dir).directories).toEqual(['/repo']);
+    expect(addDirectory('/repo', dir).directories).toEqual(norm('/repo'));
 
     addDirectory('/other', dir);
-    expect(removeDirectory('/repo', dir).directories).toEqual(['/other']);
+    expect(removeDirectory('/repo', dir).directories).toEqual(norm('/other'));
   });
 
   it('preserves directories when the theme changes', () => {
     addDirectory('/repo', dir);
-    expect(setTheme('dark', dir)).toEqual({ theme: 'dark', directories: ['/repo'] });
+    expect(setTheme('dark', dir)).toEqual({ theme: 'dark', directories: norm('/repo') });
   });
 });
 
@@ -96,6 +99,6 @@ describe('ensureSettings', () => {
 
   it('leaves existing settings untouched', () => {
     writeSettings({ theme: 'dark', directories: ['/repo'] }, dir);
-    expect(ensureSettings(dir)).toEqual({ theme: 'dark', directories: ['/repo'] });
+    expect(ensureSettings(dir)).toEqual({ theme: 'dark', directories: norm('/repo') });
   });
 });
