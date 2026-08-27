@@ -1,6 +1,6 @@
 {
   "name": "electron_git",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "",
   "type": "commonjs",
   "main": "dist/main/index.js",
