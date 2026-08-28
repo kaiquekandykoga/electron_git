@@ -17,64 +17,23 @@ File references point at the code as it stands today.
 
 ## 1. Correctness and data safety
 
-### 1.1 **P0** — A failed settings read silently destroys the user's settings
-
-`readSettings` swallows *every* error and returns defaults
-(`src/main/settings.ts:47-54`). `ensureSettings` then writes that result straight
-back over the file (`src/main/settings.ts:72-74`), and it runs on every window
-creation (`src/main/index.ts:13`). So a transient `EACCES`, an `EBUSY` on
-Windows, a half-written file, or an NFS hiccup does not degrade gracefully — it
-permanently replaces the user's tracked directories with an empty list.
-
-- Distinguish "file does not exist" (`ENOENT` → defaults, fine to write) from
-  every other failure (surface it, do **not** overwrite).
-- On a parse failure, move the bad file aside (`settings.yaml.bak-<timestamp>`)
-  before writing defaults, so the data is recoverable.
-- Only call `ensureSettings` once at startup, not per window.
-
-### 1.2 **P0** — Non-string IPC payload crashes the handler
-
-`removeDirectory` passes its argument straight to `path.normalize`
-(`src/main/settings.ts:96`), which throws `TypeError` for anything that is not a
-string. The renderer's `run()` helper has a `try/finally` with no `catch`
-(`src/renderer/pages/dashboard/dashboard.tsx:9-16`), so the rejection becomes an
-unhandled promise rejection and the UI shows nothing.
-
-- Validate and narrow every IPC argument in `src/main/ipc.ts` before it
-  reaches the settings layer (the `THEME_SET` handler already does this at
-  `src/main/ipc.ts:15-17` — apply the same discipline everywhere).
-- Wrap handler bodies so a thrown error becomes a typed error result rather
-  than a rejected `invoke`.
-
-### 1.3 **P0** — Settings writes are not atomic and not serialised
-
-`writeSettings` does a plain `writeFileSync` (`src/main/settings.ts:60-64`).
-A crash or power loss mid-write truncates the file. Every mutation is also a
-read–modify–write (`addDirectory`, `removeDirectory`, `setTheme`) with no
-in-process queue, so two rapid IPC calls can interleave and lose one edit.
-
-- Write to `settings.yaml.tmp` in the same directory, `fsync`, then
-  `fs.renameSync` over the target.
-- Serialise mutations behind a single promise chain in the main process.
-- `chmod 0o600` the settings file — it contains the user's real directory
-  paths and has no reason to be world-readable.
-
 ### 1.4 **P1** — The renderer can get stuck on "Loading…" forever
 
-`window.api.state.read().then(setState)` has no `.catch`
-(`src/renderer/index.tsx:29-31`). If the main process handler throws, `state`
-stays `null` and the user sees a permanent "Loading…" with no explanation.
+Handlers now answer with an `IpcResult`, so a failure reaches the renderer as a
+value instead of an unhandled rejection — but nothing shows it. `index.tsx`
+logs the error and leaves `state` at `null`, so the user still sees a permanent
+"Loading…" with no explanation.
 
 - Add an error state and a retry affordance.
-- Same for the mutation path in `dashboard.tsx` — surface failures instead of
-  just clearing `busy`.
+- Same for the mutation paths in `dashboard.tsx` and `settings.tsx`, which
+  currently `console.error` and clear `busy`.
 
 ### 1.5 **P1** — Stale window reference in the application menu
 
 `createApplicationMenu(mainWindow)` closes over one window
 (`src/main/menu.ts:8`), but `Menu.setApplicationMenu` is process-global. On
 macOS, closing the window and reactivating creates a new one
-(`src/main/index.ts:35-39`) while the menu still points at the destroyed one;
+(`src/main/index.ts:56-60`) while the menu still points at the destroyed one;
 `webContents.send` on it throws.
 
 - Resolve the target window at click time
@@ -84,7 +43,7 @@ macOS, closing the window and reactivating creates a new one
 
 ### 1.6 **P1** — `directories` is never revalidated
 
-`hasGit` is computed once per state read (`src/main/settings.ts:77-83`). If a
+`hasGit` is computed once per state read (`src/main/settings.ts:187-193`). If a
 repo is deleted, moved, or a drive is unmounted while the app is open, the
 dashboard keeps showing a stale badge.
 
@@ -97,12 +56,12 @@ dashboard keeps showing a stale badge.
 - `addDirectory` accepts whatever the dialog returns without checking the
   path is readable or is not already a subdirectory of a tracked entry.
 - `document.getElementById('app')` returning `null` silently renders nothing
-  (`src/renderer/index.tsx:51-55`) — throw instead, it is a build error.
+  (`src/renderer/index.tsx:57-61`) — throw instead, it is a build error.
 - `useHashRoute` does not validate the hash against known routes; a
   hand-typed `#/../../etc` is harmless today but should be normalised.
 - Theme changes do not update `BrowserWindow.setBackgroundColor`, so the
   window chrome keeps the launch-time colour until restart
-  (`src/main/index.ts:19`).
+  (`src/main/index.ts:38`).
 
 ---
 
@@ -128,7 +87,7 @@ turns a future XSS from "full compromise" into "annoying bug".
 
 ### 2.2 **P1** — Be explicit about the sandbox
 
-`sandbox` is not set in `webPreferences` (`src/main/index.ts:20-24`). Electron
+`sandbox` is not set in `webPreferences` (`src/main/index.ts:39-43`). Electron
 defaults it to `true`, and the preload is written for a sandboxed world
 (`src/preload/index.ts:3-6`), but relying on a default for a security-critical
 flag is a regression waiting to happen.
@@ -149,14 +108,15 @@ Current policy (`src/renderer/index.html:5-8`) covers `default-src`,
 
 ### 2.4 **P1** — No sender validation on IPC handlers
 
-Every `ipcMain.handle` in `src/main/ipc.ts` trusts its caller. With a single
-trusted renderer this is currently fine; it stops being fine the moment a
-webview, iframe, or second window exists.
+Payloads are validated but callers are not: the `handle` wrapper in
+`src/main/ipc.ts` trusts whoever invoked the channel. With a single trusted
+renderer this is currently fine; it stops being fine the moment a webview,
+iframe, or second window exists.
 
-- Validate `event.senderFrame` origin/URL in a shared wrapper before running
-  any handler.
-- Consider a single typed `registerHandler(channel, schema, fn)` helper so
-  validation cannot be forgotten for a new channel.
+- Validate `event.senderFrame` origin/URL inside that wrapper, so the check
+  cannot be forgotten for a new channel.
+- Fold the per-channel argument narrowing into it as a schema argument
+  (`handle(channel, schema, fn)`) once there are more channels.
 
 ### 2.5 **P1** — Supply chain and CI hardening
 
@@ -230,7 +190,7 @@ a trusted binary.
 ### 4.1 **P1** — Blocking synchronous filesystem work on the main process
 
 `describeDirectories` calls `fs.existsSync` once per tracked directory on every
-state read (`src/main/settings.ts:77-83`), on the main process, synchronously.
+state read (`src/main/settings.ts:187-193`), on the main process, synchronously.
 For a local SSD with five repos this is invisible. For a tracked network share,
 an unmounted volume, or a sleeping external drive it blocks the entire UI for
 seconds.
@@ -241,14 +201,13 @@ seconds.
 
 ### 4.2 **P1** — Startup does synchronous I/O before the window exists
 
-`ensureSettings()` reads *and writes* the YAML file before `new BrowserWindow`
-(`src/main/index.ts:13`), and if the write throws the app dies with no window
-and no error dialog.
+`ensureSettings()` still reads the YAML file synchronously before
+`new BrowserWindow` (`src/main/index.ts:32`). A failure is now reported through
+`dialog.showErrorBox` rather than killing the app silently, but the read itself
+is still on the critical path to the first pixel.
 
 - Create the window first; load settings asynchronously.
 - Use `show: false` + `ready-to-show` to avoid the white flash on launch.
-- Wrap startup in a handler that shows `dialog.showErrorBox` instead of
-  exiting silently.
 
 ### 4.3 **P2** — Renderer bundle is unoptimised
 
@@ -263,7 +222,7 @@ and no error dialog.
 ### 4.4 **P2** — Other
 
 - Persist and restore window bounds (size, position, maximised) — currently
-  hardcoded 1024×768 every launch (`src/main/index.ts:16-17`).
+  hardcoded 1024×768 every launch (`src/main/index.ts:35-36`).
 - Add `app.requestSingleInstanceLock()`; two instances today will race on the
   same settings file.
 - Whole-app re-render on every state change is fine at this size but should
@@ -294,7 +253,7 @@ it.
 `tsconfig.json` has `strict: true` but stops there.
 
 - Enable `noUncheckedIndexedAccess` — `routes[path]`
-  (`src/renderer/index.tsx:47`) is currently typed as non-`undefined` when it
+  (`src/renderer/index.tsx:53`) is currently typed as non-`undefined` when it
   is not.
 - Enable `noUnusedLocals`, `noUnusedParameters`, `noImplicitOverride`,
   `noFallthroughCasesInSwitch`, `exactOptionalPropertyTypes`,
@@ -330,12 +289,12 @@ The app is currently a settings editor; the name promises a git client.
 
 ## 6. Testing
 
-Today: one test file, `src/main/settings.test.ts`, covering the settings module.
-It is genuinely good — normalisation, round-trip, corrupt YAML, mutations — but
-it is the only thing under test.
+Today: `src/main/settings.test.ts` (normalisation, round-trip, atomic writes,
+read failures, quarantine, mutation ordering) and `src/main/ipc.test.ts`
+(payload validation and error results). Both main-process modules that touch
+user data are covered; nothing else is.
 
-- **P1** No tests at all for `src/main/ipc.ts`, `src/main/menu.ts`, or any
-  renderer code.
+- **P1** No tests at all for `src/main/menu.ts` or any renderer code.
 - **P1** `testMatch: ['**/*.test.ts']` (`jest.config.js`) excludes `.test.tsx`,
   so component tests cannot even be discovered. Add `.tsx` and a
   `jsdom` project for renderer tests with `@testing-library/react`.
@@ -344,8 +303,7 @@ it is the only thing under test.
   remove a directory.
 - **P2** Coverage thresholds in `jest.config.js` so coverage cannot silently
   regress.
-- **P2** Regression tests for each bug fixed in section 1 — especially 1.1
-  (read failure must not overwrite) and 1.2 (non-string payload).
+- **P2** Regression tests for each further bug fixed in section 1.
 - **P2** `passWithNoTests: true` hides an accidentally empty test run; drop it
   once tests exist in every project.
 - **P3** CI currently runs `npm run build` then `npm run ci` on three
@@ -395,12 +353,10 @@ it is the only thing under test.
 
 ## Suggested order
 
-1. **Data safety first** — 1.1, 1.2, 1.3. These are the ones that can lose a
-   user's data or crash on them today.
-2. **Then the security posture** — 2.1, 2.2, 2.3, 2.4. Cheap, mechanical, and
-   they close the door before there is remote content to worry about.
-3. **Then make it shippable** — 3.1 (icons), 3.2 (updates), 8.1 (logs). Without
+1. **The security posture** — 2.1, 2.2, 2.3, 2.4. Cheap, mechanical, and they
+   close the door before there is remote content to worry about.
+2. **Then make it shippable** — 3.1 (icons), 3.2 (updates), 8.1 (logs). Without
    these there is no way to diagnose or fix a user's problem after release.
-4. **Then the foundations** — 5.1 (typed IPC) and section 6 (tests), which make
+3. **Then the foundations** — 5.1 (typed IPC) and section 6 (tests), which make
    everything after this cheaper.
-5. Performance, UX, and hygiene as they become the limiting factor.
+4. Performance, UX, and hygiene as they become the limiting factor.

@@ -1,4 +1,4 @@
-import type { AppState, ThemeId } from '../shared/ipc';
+import type { AppState, IpcResult, ThemeId } from '../shared/ipc';
 
 export {};
 
@@ -14,10 +14,10 @@ declare global {
         onNavigate: (callback: (route: string) => void) => () => void;
       };
       state: {
-        read: () => Promise<AppState>;
-        setTheme: (theme: ThemeId) => Promise<AppState>;
-        addDirectory: () => Promise<AppState>;
-        removeDirectory: (directory: string) => Promise<AppState>;
+        read: () => Promise<IpcResult<AppState>>;
+        setTheme: (theme: ThemeId) => Promise<IpcResult<AppState>>;
+        addDirectory: () => Promise<IpcResult<AppState>>;
+        removeDirectory: (directory: string) => Promise<IpcResult<AppState>>;
       };
     };
   }

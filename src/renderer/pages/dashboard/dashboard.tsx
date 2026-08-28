@@ -1,15 +1,22 @@
 import { useState } from 'react';
-import type { AppState } from '../../../shared/ipc.js';
+import type { AppState, IpcResult } from '../../../shared/ipc.js';
 import type { PageProps } from '../page.js';
 
 export function Dashboard({ state, onStateChange }: PageProps) {
   const { node, chrome, electron } = window.api.versions;
   const [busy, setBusy] = useState(false);
 
-  const run = async (action: () => Promise<AppState>) => {
+  const run = async (action: () => Promise<IpcResult<AppState>>) => {
     setBusy(true);
     try {
-      onStateChange(await action());
+      const result = await action();
+      if (result.ok) {
+        onStateChange(result.value);
+      } else {
+        console.error(result.error);
+      }
+    } catch (error) {
+      console.error(error);
     } finally {
       setBusy(false);
     }
