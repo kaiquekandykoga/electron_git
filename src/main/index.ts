@@ -1,3 +1,22 @@
+/**
+ * src/main/index.ts
+ *
+ * @process      Main. Process entry point: owns the app lifecycle and the only
+ *               BrowserWindow.
+ * @purpose      Boot the app — load settings once, register the IPC handlers and the
+ *               menu, open the window, and follow each platform’s window-closing
+ *               convention.
+ * @dependencies electron: app/BrowserWindow lifecycle and the startup error dialog;
+ *               ./settings: the one-time settings load; ./ipc: handler registration;
+ *               ./menu: application menu.
+ * @sideEffects  Creates ~/.electron_git on first run; registers IPC handlers and the
+ *               application menu; opens a window; quits the app off macOS when the last
+ *               window closes.
+ * @notes        Settings are read once at startup, never per window. A failed read
+ *               falls back to in-memory defaults and leaves whatever is on disk
+ *               untouched.
+ */
+
 import { app, BrowserWindow, dialog } from 'electron';
 import * as path from 'path';
 import { ThemeId } from '../shared/ipc';

@@ -1,3 +1,18 @@
+/**
+ * src/renderer/pages/settings/settings.tsx
+ *
+ * @process      Renderer. The page routed at #/settings.
+ * @purpose      Present the available themes and persist the user’s choice through the
+ *               state bridge.
+ * @exports      Settings.
+ * @dependencies ../../../shared/ipc: THEMES and ThemeId; window.api.state.setTheme:
+ *               persists the choice; ../page: PageProps.
+ * @sideEffects  Writes settings through window.api; the state that comes back re-themes
+ *               the document.
+ * @notes        The radio inputs are generated from THEMES, so a new theme needs only a
+ *               label added here.
+ */
+
 import type { PageProps } from '../page.js';
 import { THEMES, ThemeId } from '../../../shared/ipc.js';
 

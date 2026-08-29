@@ -1,3 +1,20 @@
+/**
+ * src/main/ipc.ts
+ *
+ * @process      Main. The receiving end of every channel the preload bridge exposes.
+ * @purpose      Register the ipcMain handlers, narrow the untrusted payloads they
+ *               receive, and answer with the resulting AppState.
+ * @exports      registerIpcHandlers.
+ * @dependencies electron: ipcMain registration and the directory picker; ./settings:
+ *               reads and serialised mutations; ../shared/ipc: channel names and the
+ *               result shape.
+ * @sideEffects  Registers handlers on ipcMain; opens the native open-directory dialog;
+ *               writes settings through ./settings.
+ * @notes        Handlers never reject — a thrown error comes back as `{ ok: false }`,
+ *               because a rejected invoke would surface in the renderer as an unhandled
+ *               rejection the user never sees.
+ */
+
 import { BrowserWindow, dialog, ipcMain, IpcMainInvokeEvent } from 'electron';
 import { AppState, IPC_CHANNELS, IpcResult, THEMES, ThemeId } from '../shared/ipc';
 import {

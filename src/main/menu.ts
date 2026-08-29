@@ -1,3 +1,17 @@
+/**
+ * src/main/menu.ts
+ *
+ * @process      Main. Owns the application menu and drives renderer navigation from it.
+ * @purpose      Build the platform-appropriate menu and turn its Navigate items into
+ *               route messages for the window.
+ * @exports      createApplicationMenu.
+ * @dependencies electron: the menu template and webContents.send; ../shared/ipc: the
+ *               NAVIGATE channel and RouteId.
+ * @sideEffects  Replaces the process-wide application menu.
+ * @notes        Navigation is one-way, main → renderer; the renderer turns the route
+ *               into a hash change.
+ */
+
 import { BrowserWindow, Menu, MenuItemConstructorOptions } from 'electron';
 import { IPC_CHANNELS, RouteId } from '../shared/ipc';
 

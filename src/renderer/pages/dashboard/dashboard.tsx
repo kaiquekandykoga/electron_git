@@ -1,3 +1,18 @@
+/**
+ * src/renderer/pages/dashboard/dashboard.tsx
+ *
+ * @process      Renderer. The page routed at #/dashboard.
+ * @purpose      List the tracked directories with their .git status, and let the user
+ *               add or remove one.
+ * @exports      Dashboard.
+ * @dependencies react: the in-flight flag; window.api.state: add/remove directory over
+ *               IPC; ../page: PageProps.
+ * @sideEffects  Opens the main process directory picker and writes settings, both
+ *               through window.api.
+ * @notes        Controls are disabled while a mutation is in flight — the add flow
+ *               opens a native modal dialog, and a second invoke would queue behind it.
+ */
+
 import { useState } from 'react';
 import type { AppState, IpcResult } from '../../../shared/ipc.js';
 import type { PageProps } from '../page.js';

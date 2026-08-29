@@ -1,3 +1,19 @@
+/**
+ * src/renderer/index.tsx
+ *
+ * @process      Renderer. App shell and bundle entry point — esbuild bundles this file.
+ * @purpose      Mount React, hold the AppState fetched over IPC, and render whichever
+ *               page the hash route selects.
+ * @dependencies react-dom/client: mounts the tree; ./router/useHashRoute: the active
+ *               path; ./pages/*: the routed pages; window.api: state reads and
+ *               navigation events.
+ * @sideEffects  Renders into #app; sets document.documentElement.dataset.theme; writes
+ *               window.location.hash when the menu navigates.
+ * @notes        The theme lives on <html> so the stylesheet can drive every colour from
+ *               one attribute selector. A failed state read is logged, not shown
+ *               (docs/TODO.md 1.4).
+ */
+
 import { useCallback, useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { createRoot } from 'react-dom/client';

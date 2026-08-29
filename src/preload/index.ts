@@ -1,3 +1,20 @@
+/**
+ * src/preload/index.ts
+ *
+ * @process      Preload. The context isolation boundary — the only code holding both
+ *               ipcRenderer and a handle on the renderer’s window.
+ * @purpose      Expose a narrow `window.api` (versions, navigation subscription, state
+ *               operations) so renderer code never touches Electron directly.
+ * @exports      window.api: versions, router.onNavigate,
+ *               state.read/setTheme/addDirectory/removeDirectory.
+ * @dependencies electron: contextBridge and ipcRenderer.
+ * @sideEffects  Defines `window.api` in the isolated world; adds and removes
+ *               ipcRenderer listeners.
+ * @notes        A sandboxed preload may only require a small builtin allowlist, so the
+ *               channel names are duplicated from ../shared/ipc.ts. Its types are
+ *               mirrored by hand in ../renderer/window.d.ts.
+ */
+
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 
 // Sandboxed preload scripts can only `require` a small built-in allowlist

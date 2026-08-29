@@ -1,3 +1,17 @@
+/**
+ * src/renderer/router/useHashRoute.ts
+ *
+ * @process      Renderer. The routing primitive the app shell reads.
+ * @purpose      Track the current hash path and keep the URL in step with it.
+ * @exports      useHashRoute.
+ * @dependencies react: useState and useEffect.
+ * @sideEffects  Writes window.location.hash when it is empty; adds and removes a
+ *               hashchange listener.
+ * @notes        Hash routing rather than history routing: the window loads the bundle
+ *               from a file:// URL, where path-based routing has nothing to resolve
+ *               against.
+ */
+
 import { useEffect, useState } from 'react';
 
 function readHash(defaultPath: string): string {

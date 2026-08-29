@@ -1,3 +1,18 @@
+/**
+ * src/main/settings.test.ts
+ *
+ * @process      Main. Unit tests for the settings module; they run under Jest, not
+ *               inside Electron.
+ * @purpose      Cover normalisation, atomic persistence, mutation serialisation, and
+ *               the read failures that must never destroy the file.
+ * @dependencies ./settings: the subject under test; jest: the fs module mock; os and
+ *               fs: real temp directories.
+ * @sideEffects  Creates and removes directories under os.tmpdir(); mocks
+ *               fs.readFileSync for the module under test.
+ * @notes        fs.readFileSync is not configurable, so it is replaced by a module mock
+ *               delegating to the real implementation rather than by jest.spyOn.
+ */
+
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';

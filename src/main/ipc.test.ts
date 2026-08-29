@@ -1,3 +1,18 @@
+/**
+ * src/main/ipc.test.ts
+ *
+ * @process      Main. Unit tests for the IPC handlers; electron is mocked, so no app or
+ *               window is created.
+ * @purpose      Assert that every channel narrows its payload, answers with an
+ *               IpcResult, and never rejects.
+ * @dependencies ./ipc: the subject under test; ../shared/ipc: channel names and shapes;
+ *               jest: the electron and settings mocks.
+ * @sideEffects  None beyond Jest module mocks.
+ * @notes        Persistence is settings.test.ts’ job. Here the settings layer is an
+ *               in-memory stand-in whose narrow parameter types are the point: an
+ *               unvalidated payload reaching it is recorded.
+ */
+
 import { IPC_CHANNELS, AppState, IpcResult, Settings, ThemeId } from '../shared/ipc';
 
 type Handler = (event: unknown, arg?: unknown) => Promise<IpcResult<AppState>>;

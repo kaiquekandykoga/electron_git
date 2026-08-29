@@ -1,3 +1,24 @@
+/**
+ * src/main/settings.ts
+ *
+ * @process      Main. The only writer of the settings file; the renderer reaches it
+ *               over IPC.
+ * @purpose      Load, normalise and atomically persist ~/.electron_git/settings.yaml,
+ *               and derive from it the AppState the renderer renders.
+ * @exports      SETTINGS_DIR, SETTINGS_FILENAME, SettingsError, settingsPath,
+ *               defaultSettings, normalizeSettings, readSettings, writeSettings,
+ *               ensureSettings, serializeMutation, hasGit, describeDirectories,
+ *               toAppState, addDirectory, removeDirectory, setTheme.
+ * @dependencies js-yaml: parses and serialises the settings file; ../shared/ipc: the
+ *               Settings and AppState shapes shared with the renderer.
+ * @sideEffects  Creates ~/.electron_git (0700) and settings.yaml (0600); renames an
+ *               unparseable file aside; stats tracked directories; holds the
+ *               module-level mutation queue.
+ * @notes        The file holds the user’s real paths, so a read that fails for any
+ *               reason other than ENOENT throws rather than letting empty defaults
+ *               overwrite it.
+ */
+
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';

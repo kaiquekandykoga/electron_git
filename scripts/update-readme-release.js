@@ -1,11 +1,20 @@
+/**
+ * scripts/update-readme-release.js
+ *
+ * @process      Build. A Release workflow step, run after the tag exists.
+ * @purpose      Rewrite the download link in README.md so it points at the release that
+ *               was just published.
+ * @dependencies process.argv and the TAG/GITHUB_REPOSITORY environment variables:
+ *               supplied by the workflow.
+ * @sideEffects  Reads and rewrites README.md; exits non-zero on a missing argument or
+ *               missing markers.
+ * @notes        The link sits between HTML comment markers so the surrounding prose can
+ *               be edited freely without breaking the rewrite.
+ */
+
 const fs = require('fs');
 const path = require('path');
 
-// Rewrites the download link in README.md so it always points at the release
-// that was just published. Run from the Release workflow, after the tag exists.
-//
-// The link lives between HTML comment markers so the surrounding prose can be
-// edited freely without breaking the automation.
 const START = '<!-- latest-release:start -->';
 const END = '<!-- latest-release:end -->';
 

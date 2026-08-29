@@ -1,3 +1,18 @@
+/**
+ * src/shared/ipc.ts
+ *
+ * @process      Shared. Compiled into both the main process and the renderer bundle;
+ *               the contract the two sides agree on.
+ * @purpose      Single source of truth for the IPC channel names and for every data
+ *               shape that crosses the bridge.
+ * @exports      IPC_CHANNELS, THEMES, DEFAULT_THEME, RouteId, ThemeId, Settings,
+ *               DirectoryEntry, AppState, IpcResult.
+ * @sideEffects  None.
+ * @notes        A sandboxed preload script cannot import this file, so
+ *               src/preload/index.ts repeats the channel names by hand — change both
+ *               together.
+ */
+
 export const IPC_CHANNELS = {
   NAVIGATE: 'router:navigate',
   STATE_READ: 'state:read',
