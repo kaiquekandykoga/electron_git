@@ -1,24 +1,69 @@
-import { BrowserWindow, dialog, ipcMain } from 'electron';
-import { AppState, IPC_CHANNELS, THEMES, ThemeId } from '../shared/ipc';
+import { BrowserWindow, dialog, ipcMain, IpcMainInvokeEvent } from 'electron';
+import { AppState, IPC_CHANNELS, IpcResult, THEMES, ThemeId } from '../shared/ipc';
 import {
   addDirectory,
   readSettings,
   removeDirectory,
+  serializeMutation,
   setTheme,
   toAppState,
 } from './settings';
 
-export function registerIpcHandlers(): void {
-  ipcMain.handle(IPC_CHANNELS.STATE_READ, (): AppState => toAppState(readSettings()));
+/** Raised by a handler when the renderer sent something the channel forbids. */
+class InvalidArgumentError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidArgumentError';
+  }
+}
 
-  ipcMain.handle(IPC_CHANNELS.THEME_SET, (_event, theme: ThemeId): AppState => {
-    if (!THEMES.includes(theme)) {
-      return toAppState(readSettings());
+function describeError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * Registers a handler that always resolves. Anything thrown inside — a bad
+ * payload, an unreadable settings file — comes back as `{ ok: false }` instead
+ * of rejecting the renderer's `invoke`, which would surface as an unhandled
+ * promise rejection and show the user nothing.
+ */
+function handle<T>(
+  channel: string,
+  handler: (event: IpcMainInvokeEvent, arg: unknown) => T | Promise<T>,
+): void {
+  ipcMain.handle(channel, async (event, arg: unknown): Promise<IpcResult<T>> => {
+    try {
+      return { ok: true, value: await handler(event, arg) };
+    } catch (error) {
+      return { ok: false, error: describeError(error) };
     }
-    return toAppState(setTheme(theme));
+  });
+}
+
+/** Every payload crossing the bridge is `unknown` until it is narrowed here. */
+function asTheme(value: unknown): ThemeId {
+  if (!THEMES.includes(value as ThemeId)) {
+    throw new InvalidArgumentError(`Unknown theme: ${JSON.stringify(value)}`);
+  }
+  return value as ThemeId;
+}
+
+function asDirectory(value: unknown): string {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new InvalidArgumentError(`Expected a directory path, received ${typeof value}`);
+  }
+  return value;
+}
+
+export function registerIpcHandlers(): void {
+  handle(IPC_CHANNELS.STATE_READ, (): AppState => toAppState(readSettings()));
+
+  handle(IPC_CHANNELS.THEME_SET, (_event, theme): Promise<AppState> => {
+    const next = asTheme(theme);
+    return serializeMutation(() => toAppState(setTheme(next)));
   });
 
-  ipcMain.handle(IPC_CHANNELS.DIRECTORY_ADD, async (event): Promise<AppState> => {
+  handle(IPC_CHANNELS.DIRECTORY_ADD, async (event): Promise<AppState> => {
     const window = BrowserWindow.fromWebContents(event.sender);
     const options: Electron.OpenDialogOptions = {
       title: 'Add directory',
@@ -29,15 +74,16 @@ export function registerIpcHandlers(): void {
       ? await dialog.showOpenDialog(window, options)
       : await dialog.showOpenDialog(options);
 
-    if (result.canceled || result.filePaths.length === 0) {
-      return toAppState(readSettings());
+    const [selected] = result.filePaths;
+    if (result.canceled || typeof selected !== 'string') {
+      return serializeMutation(() => toAppState(readSettings()));
     }
 
-    return toAppState(addDirectory(result.filePaths[0]));
+    return serializeMutation(() => toAppState(addDirectory(selected)));
   });
 
-  ipcMain.handle(
-    IPC_CHANNELS.DIRECTORY_REMOVE,
-    (_event, directory: string): AppState => toAppState(removeDirectory(directory)),
-  );
+  handle(IPC_CHANNELS.DIRECTORY_REMOVE, (_event, directory): Promise<AppState> => {
+    const target = asDirectory(directory);
+    return serializeMutation(() => toAppState(removeDirectory(target)));
+  });
 }

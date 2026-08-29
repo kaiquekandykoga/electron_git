@@ -8,7 +8,16 @@ const THEME_LABELS: Record<ThemeId, string> = {
 
 export function Settings({ state, onStateChange }: PageProps) {
   const selectTheme = async (theme: ThemeId) => {
-    onStateChange(await window.api.state.setTheme(theme));
+    try {
+      const result = await window.api.state.setTheme(theme);
+      if (result.ok) {
+        onStateChange(result.value);
+      } else {
+        console.error(result.error);
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (

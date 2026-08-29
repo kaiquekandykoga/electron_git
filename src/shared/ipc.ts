@@ -29,3 +29,10 @@ export interface AppState {
   theme: ThemeId;
   directories: DirectoryEntry[];
 }
+
+/**
+ * What every `ipcMain.handle` resolves to. A rejected `invoke` surfaces in the
+ * renderer as an unhandled promise rejection — the user sees nothing at all —
+ * so failures travel as a value instead.
+ */
+export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: string };

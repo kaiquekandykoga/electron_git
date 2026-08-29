@@ -27,7 +27,13 @@ function App() {
   );
 
   useEffect(() => {
-    window.api.state.read().then(setState);
+    // Failures are logged rather than shown: the main process no longer rejects
+    // the invoke, so this can never become an unhandled rejection. Surfacing the
+    // error to the user is still outstanding (docs/TODO.md 1.4).
+    window.api.state.read().then(
+      (result) => (result.ok ? setState(result.value) : console.error(result.error)),
+      (error) => console.error(error),
+    );
   }, []);
 
   // The theme lives on <html> so the stylesheet can drive every colour from a
