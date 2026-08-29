@@ -1,10 +1,12 @@
 name: Release
 
-# Fully automated release:
-#   1. "Run workflow" from the Actions tab (or push a v* tag by hand)
-#   2. the version is bumped, committed and tagged
-#   3. installers are built on Linux, macOS and Windows
-#   4. the GitHub Release is published with all artifacts attached
+# Fully automated release. Three ways in, all ending in a published release:
+#   1. push a version bump to the default branch — the workflow notices that
+#      package.json changed version and releases it
+#   2. "Run workflow" from the Actions tab — the version is bumped for you
+#   3. push a v* tag by hand
+# From there: installers are built on Linux, macOS and Windows and the GitHub
+# Release is published with all artifacts attached.
 on:
   workflow_dispatch:
     inputs:
@@ -14,6 +16,7 @@ on:
         options: [patch, minor, major]
         default: patch
   push:
+    branches: [master]
     tags: ['v*']
 
 permissions:
@@ -24,7 +27,68 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Cheap gate: most pushes to master are not releases, so decide before
+  # spending three runners on installers.
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.check.outputs.proceed }}
+      tag: ${{ steps.check.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Decide whether this push is a release
+        id: check
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          proceed=true
+          tag=""
+          reason=""
+
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            reason="manual run: the version will be bumped"
+          elif [ "$REF_TYPE" = "tag" ]; then
+            tag="$REF_NAME"
+            reason="tag $tag was pushed"
+          else
+            # A branch push releases only when package.json's version moved and
+            # that version has not been tagged yet. The tag check also keeps the
+            # bump and README commits this workflow pushes from looping back in.
+            current="$(node -p "require('./package.json').version")"
+            tag="v$current"
+            previous=""
+            if [ -n "${BEFORE:-}" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+              && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+              previous="$(git show "$BEFORE:package.json" 2>/dev/null \
+                | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version" 2>/dev/null || true)"
+            fi
+
+            if [ -n "$previous" ] && [ "$previous" = "$current" ]; then
+              proceed=false
+              reason="version unchanged ($current)"
+            elif git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+              proceed=false
+              reason="$tag is already tagged"
+            else
+              reason="version bumped ${previous:-?} -> $current"
+            fi
+          fi
+
+          echo "proceed=$proceed" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "$reason" >> "$GITHUB_STEP_SUMMARY"
+          echo "release=$proceed ($reason)"
+
   prepare:
+    needs: detect
+    if: needs.detect.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.resolve.outputs.tag }}
@@ -40,19 +104,28 @@ jobs:
       # Gate the release on the same checks CI runs.
       - run: npm run build
       - run: npm run ci
-      - name: Bump version and tag
+      - name: Resolve the tag
         id: resolve
         env:
           BUMP: ${{ inputs.bump }}
+          EVENT: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          TAG: ${{ needs.detect.outputs.tag }}
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = "push" ]; then
-            TAG="${{ github.ref_name }}"
+          if [ "$EVENT" != "workflow_dispatch" ] && [ "$REF_TYPE" = "tag" ]; then
+            : # already tagged by the push that triggered this run
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            TAG="$(npm version "$BUMP" -m 'release: %s')"
-            git push origin HEAD:"${{ github.ref_name }}" --follow-tags
+            if [ "$EVENT" = "workflow_dispatch" ]; then
+              TAG="$(npm version "$BUMP" -m 'release: %s')"
+              git push origin HEAD:"${{ github.ref_name }}" --follow-tags
+            else
+              # The bump is already on the branch; only the tag is missing.
+              git tag -a "$TAG" -m "release: $TAG"
+              git push origin "$TAG"
+            fi
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 

@@ -48,6 +48,13 @@ Both must pass; CI runs the same commands on all three platforms.
 
 ## Releases
 
-Releases are fully automated (`.github/workflows/release.yml`). Do not bump
-`version` in `package.json` by hand and do not create tags manually — trigger
-the *Release* workflow instead, which bumps, tags, builds and publishes.
+Releases are fully automated (`.github/workflows/release.yml`). Never create
+tags by hand — the workflow tags, builds and publishes. Two ways to release:
+
+- trigger the *Release* workflow from the Actions tab and pick the bump; it
+  bumps `version` in `package.json` for you, or
+- bump `version` in `package.json` yourself and push it to `master`; the
+  workflow detects the new version and releases it.
+
+A push to `master` that leaves `version` alone — or whose version is already
+tagged — does not release anything.
