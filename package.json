@@ -27,7 +27,7 @@
     "electron": "^44.0.0",
     "electron-builder": "^26.15.3",
     "esbuild": "^0.28.2",
-    "eslint": "^10.9.1",
+    "eslint": "^10.10.0",
     "globals": "^17.11.0",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.12",
